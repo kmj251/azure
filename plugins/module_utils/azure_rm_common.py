@@ -103,7 +103,7 @@ AZURE_API_PROFILES = {
         ),
         'ManagementGroupsClient': '2020-05-01',
         'NetworkManagementClient': '2019-11-01',
-        'ResourceManagementClient': '2017-05-10',
+        'ResourceManagementClient': '2019-10-01',
         'SearchManagementClient': '2020-08-01',
         'StorageManagementClient': '2021-06-01',
         'SubscriptionClient': '2019-11-01',
@@ -898,7 +898,7 @@ class AzureRMModuleBase(object):
         self.log('Getting management service client {0}'.format(client_type.__name__))
         self.check_client_version(client_type)
 
-        client_argspec = inspect.getargspec(client_type.__init__)
+        client_argspec = inspect.signature(client_type.__init__)
 
         if not base_url:
             # most things are resource_manager, don't make everyone specify
@@ -934,12 +934,12 @@ class AzureRMModuleBase(object):
 
         # unversioned clients won't accept profile; only send it if necessary
         # clients without a version specified in the profile will use the default
-        if api_profile_dict and 'profile' in client_argspec.args:
+        if api_profile_dict and 'profile' in client_argspec.parameters:
             client_kwargs['profile'] = api_profile_dict
 
         # If the client doesn't accept api_version, it's unversioned.
         # If it does, favor explicitly-specified api_version, fall back to api_profile
-        if 'api_version' in client_argspec.args:
+        if 'api_version' in client_argspec.parameters:
             profile_default_version = api_profile_dict.get('default_api_version', None)
             if api_version or profile_default_version:
                 client_kwargs['api_version'] = api_version or profile_default_version
@@ -1061,6 +1061,7 @@ class AzureRMModuleBase(object):
             self._subscription_client = self.get_mgmt_svc_client(SubscriptionClient,
                                                                  base_url=self._cloud_environment.endpoints.resource_manager,
                                                                  suppress_subscription_id=True,
+                                                                 is_track2=True,
                                                                  api_version='2019-11-01')
         return self._subscription_client
 
@@ -1099,13 +1100,14 @@ class AzureRMModuleBase(object):
         if not self._resource_client:
             self._resource_client = self.get_mgmt_svc_client(ResourceManagementClient,
                                                              base_url=self._cloud_environment.endpoints.resource_manager,
-                                                             api_version='2017-05-10')
+                                                             is_track2=True,
+                                                             api_version='2019-10-01')
         return self._resource_client
 
     @property
     def rm_models(self):
         self.log("Getting resource manager models")
-        return ResourceManagementClient.models("2017-05-10")
+        return ResourceManagementClient.models("2019-10-01")
 
     @property
     def image_client(self):
@@ -1368,6 +1370,7 @@ class AzureRMModuleBase(object):
         if not self._lock_client:
             self._lock_client = self.get_mgmt_svc_client(ManagementLockClient,
                                                          base_url=self._cloud_environment.endpoints.resource_manager,
+                                                         is_track2=True,
                                                          api_version='2016-09-01')
         return self._lock_client
 
