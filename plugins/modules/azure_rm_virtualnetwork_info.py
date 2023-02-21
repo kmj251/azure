@@ -23,7 +23,7 @@ description:
 options:
     name:
         description:
-            - Only show results for a specific security group.
+            - Only show results for a specific virtual network.
     resource_group:
         description:
             - Limit results by resource group. Required when filtering by name.
@@ -264,7 +264,8 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
         results = []
 
         try:
-            item = self.network_client.virtual_networks.get(self.resource_group, self.name)
+            item = self.network_client.virtual_networks.get(resource_group_name=self.resource_group, 
+                                                            virtual_network_name=self.name)
         except ResourceNotFoundError:
             pass
 
