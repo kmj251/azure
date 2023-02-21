@@ -229,6 +229,7 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
         self.name = None
         self.resource_group = None
         self.tags = None
+        self.virtual_network = None
 
         super(AzureRMNetworkInterfaceInfo, self).__init__(self.module_arg_spec,
                                                           supports_check_mode=True,
@@ -263,6 +264,10 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
         item = None
         results = []
 
+        self.virtual_network = self.parse_resource_to_dict(self.name)
+        if self.resource_group is None and self.virtual_network['resource_group']:
+            self.resource_group = self.virtual_network['resource_group']
+            self.name = self.virtual_network['virtual_network_name']
         try:
             item = self.network_client.virtual_networks.get(resource_group_name=self.resource_group, 
                                                             virtual_network_name=self.name)
