@@ -276,7 +276,7 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
     def list_resource_group(self):
         self.log('List items for resource group')
         try:
-            response = self.network_client.virtual_networks.list(self.resource_group)
+            response = self.network_client.virtual_networks.list(resource_group_name=self.resource_group)
         except ResourceNotFoundError as exc:
             self.fail("Failed to list for resource group {0} - {1}".format(self.resource_group, str(exc)))
 
