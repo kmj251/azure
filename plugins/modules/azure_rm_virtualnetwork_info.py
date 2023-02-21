@@ -268,9 +268,11 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
         #if self.resource_group is None and self.virtual_network['resource_group_name']:
         self.resource_group = self.virtual_network['resource_group']
         self.name = self.virtual_network['name']
+
         try:
             item = self.network_client.virtual_networks.get(resource_group_name=self.resource_group, 
-                                                            virtual_network_name=self.name)
+                                                            virtual_network_name=self.name,
+                                                            subscription_id=self.virtual_network['subscription_id'])
         except ResourceNotFoundError:
             pass
 
