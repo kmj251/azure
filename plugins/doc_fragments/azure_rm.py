@@ -19,7 +19,8 @@ options:
         choices: ['azure_rm', 'azure.azcollection.azure_rm']
     include_vm_resource_groups:
         description: A list of resource group names to search for virtual machines. '\*' will include all resource
-            groups in the subscription.
+            groups in the subscription. Can also be set comma separated resource group names via the
+            C(ANSIBLE_AZURE_VM_RESOURCE_GROUPS) environment variable.
         default: ['*']
     include_vmss_resource_groups:
         description: A list of resource group names to search for virtual machine scale sets (VMSSs). '\*' will
@@ -46,6 +47,11 @@ options:
             expression in the list is evaluated for each host; when the expression is true, the host is excluded
             from the inventory.
         default: []
+    include_host_filters:
+        description: Include hosts from the inventory with a list of Jinja2 conditional expressions. Each
+            expression in the list is evaluated for each host; when the expression is true, the host is included
+            in the inventory, all hosts are includes in the inventory by default.
+        default: [true]
     batch_fetch:
         description: To improve performance, results are fetched using an unsupported batch API. Disabling
             C(batch_fetch) uses a much slower serial fetch, resulting in many more round-trips. Generally only
@@ -60,8 +66,8 @@ options:
         description:
         - By default this plugin is using a general group name sanitization to create safe and usable group names for use in Ansible.
             This option allows you to override that, in efforts to allow migration from the old inventory script and
-            matches the sanitization of groups when the script's ``replace_dash_in_groups`` option is set to ``False``.
-            To replicate behavior of ``replace_dash_in_groups = True`` with constructed groups,
+            matches the sanitization of groups when the script's C(replace_dash_in_groups) option is set to C(false).
+            To replicate behavior of C(replace_dash_in_groups = true) with constructed groups,
             you will need to replace hyphens with underscores via the regex_replace filter for those entries.
         - For this to work you should also turn off the TRANSFORM_INVALID_GROUP_CHARS setting,
             otherwise the core engine will just use the standard sanitization on top.
@@ -85,9 +91,9 @@ options:
         - Ignores expression if result is an empty string or None value.
         - By default, inventory_hostname is generated to be globally unique based on the VM host name.
             See C(plain_host_names) for more details on the default.
-        - An expression of 'default' will force using the default hostname generator if no previous hostname expression
+        - An expression of C(default) will force using the default hostname generator if no previous hostname expression
             resulted in a valid hostname.
-        - Use ``default_inventory_hostname`` to access the default hostname generator's value in any of the Jinja2 expressions.
+        - Use C(default_inventory_hostname) to access the default hostname generator's value in any of the Jinja2 expressions.
         type: list
         elements: str
         default: [default]

@@ -23,9 +23,11 @@ options:
     name:
         description:
             - Only show results for a specific web app.
+        type: str
     resource_group:
         description:
             - Limit results by resource group.
+        type: str
     return_publish_profile:
         description:
             - Indicate whether to return publishing profile of the web app.
@@ -45,20 +47,20 @@ author:
 '''
 
 EXAMPLES = '''
-    - name: Get facts for web app by name
-      azure_rm_webapp_info:
-        resource_group: myResourceGroup
-        name: winwebapp1
+- name: Get facts for web app by name
+  azure_rm_webapp_info:
+    resource_group: myResourceGroup
+    name: winwebapp1
 
-    - name: Get facts for web apps in resource group
-      azure_rm_webapp_info:
-        resource_group: myResourceGroup
+- name: Get facts for web apps in resource group
+  azure_rm_webapp_info:
+    resource_group: myResourceGroup
 
-    - name: Get facts for web apps with tags
-      azure_rm_webapp_info:
-        tags:
-          - testtag
-          - foo:bar
+- name: Get facts for web apps with tags
+  azure_rm_webapp_info:
+    tags:
+      - testtag
+      - foo:bar
 '''
 
 RETURN = '''
@@ -133,6 +135,12 @@ webapps:
         always_on:
             description:
                 - If the app is kept loaded even when there's no traffic.
+            returned: always
+            type: bool
+            sample: true
+        http20_enabled:
+            description:
+                - Configures a web site to allow clients to connect over HTTP 2.0.
             returned: always
             type: bool
             sample: true
@@ -441,20 +449,20 @@ class AzureRMWebAppInfo(AzureRMModuleBase):
         curated_output = dict()
         curated_output['id'] = webapp['id']
         curated_output['name'] = webapp['name']
-        curated_output['resource_group'] = webapp['properties']['resourceGroup']
+        curated_output['resource_group'] = webapp['resource_group']
         curated_output['location'] = webapp['location']
-        curated_output['plan'] = webapp['properties']['serverFarmId']
+        curated_output['plan'] = webapp['server_farm_id']
         curated_output['tags'] = webapp.get('tags', None)
 
         # important properties from output. not match input arguments.
-        curated_output['app_state'] = webapp['properties']['state']
-        curated_output['availability_state'] = webapp['properties']['availabilityState']
-        curated_output['default_host_name'] = webapp['properties']['defaultHostName']
-        curated_output['host_names'] = webapp['properties']['hostNames']
-        curated_output['enabled'] = webapp['properties']['enabled']
-        curated_output['enabled_host_names'] = webapp['properties']['enabledHostNames']
-        curated_output['host_name_ssl_states'] = webapp['properties']['hostNameSslStates']
-        curated_output['outbound_ip_addresses'] = webapp['properties']['outboundIpAddresses']
+        curated_output['app_state'] = webapp['state']
+        curated_output['availability_state'] = webapp['availability_state']
+        curated_output['default_host_name'] = webapp['default_host_name']
+        curated_output['host_names'] = webapp['host_names']
+        curated_output['enabled'] = webapp['enabled']
+        curated_output['enabled_host_names'] = webapp['enabled_host_names']
+        curated_output['host_name_ssl_states'] = webapp['host_name_ssl_states']
+        curated_output['outbound_ip_addresses'] = webapp['outbound_ip_addresses']
 
         # curated site_config
         if configuration:
@@ -484,6 +492,7 @@ class AzureRMWebAppInfo(AzureRMModuleBase):
                     curated_output['frameworks'].append({'name': tmp[0].lower(), 'version': tmp[1]})
 
             curated_output['always_on'] = configuration.get('always_on')
+            curated_output['http20_enabled'] = configuration.get('http20_enabled')
             curated_output['ftps_state'] = configuration.get('ftps_state')
             curated_output['min_tls_version'] = configuration.get('min_tls_version')
 

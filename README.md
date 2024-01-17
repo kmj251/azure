@@ -1,5 +1,5 @@
 # Ansible collection for Azure
-[![Doc](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://docs.ansible.com/ansible/latest/modules/list_of_cloud_modules.html#azure)
+[![Doc](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://docs.ansible.com/ansible/latest/collections/azure/azcollection/index.html)
 [![Code of conduct](https://img.shields.io/badge/code%20of%20conduct-Ansible-silver.svg)](https://docs.ansible.com/ansible/latest/community/code_of_conduct.html)
 [![License](https://img.shields.io/badge/license-GPL%20v3.0-brightgreen.svg)](LICENSE)
 
@@ -9,11 +9,11 @@ Documentation of individual modules is [available in the Ansible docs site](http
 
 ## Installation
 
-It is recommended to run ansible in [Virtualenv](https://virtualenv.pypa.io/en/latest/) 
+It is recommended to run ansible in [Virtualenv](https://virtualenv.pypa.io/en/latest/)
 
 ## Requirements
 
-- ansible version >= 2.9
+- ansible version >= 2.14
 
 To install Azure collection hosted in Galaxy:
 
@@ -50,7 +50,7 @@ To use a module from Azure collection, please reference the full namespace, coll
         account_type: Standard_LRS
 ```
 
-Or you can add full namepsace and collection name in the `collections` element:
+Or you can add full namespace and collection name in the `collections` element:
 
 ```yaml
 ---
@@ -71,7 +71,7 @@ For existing Ansible roles, please also reference the full namespace, collection
 
 ### Plugins
 
-To use a pluign from Azure collection, please reference the full namespace, collection name, and plugins name that you want to use:
+To use a plugin from Azure collection, please reference the full namespace, collection name, and plugins name that you want to use:
 
 ```yaml
 ---

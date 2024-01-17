@@ -21,22 +21,27 @@ options:
         description:
             - The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
         required: True
+        type: str
     server_name:
         description:
             - The name of the server.
         required: True
+        type: str
     name:
         description:
             - The name of the database.
         required: True
+        type: str
     charset:
         description:
             - The charset of the database. Check MySQL documentation for possible values.
             - This is only set on creation, use I(force_update) to recreate a database if the values don't match.
+        type: str
     collation:
         description:
             - The collation of the database. Check MySQL documentation for possible values.
             - This is only set on creation, use I(force_update) to recreate a database if the values don't match.
+        type: str
     force_update:
         description:
             - When set to C(true), will delete and recreate the existing MySQL database if any of the properties don't match what is set.
@@ -47,6 +52,7 @@ options:
         description:
             - Assert the state of the MySQL Database. Use C(present) to create or update a database and C(absent) to delete it.
         default: present
+        type: str
         choices:
             - absent
             - present
@@ -60,11 +66,11 @@ author:
 '''
 
 EXAMPLES = '''
-  - name: Create (or update) MySQL Database
-    azure_rm_mysqldatabase:
-      resource_group: myResourceGroup
-      server_name: testserver
-      name: db1
+- name: Create (or update) MySQL Database
+  azure_rm_mysqldatabase:
+    resource_group: myResourceGroup
+    server_name: testserver
+    name: db1
 '''
 
 RETURN = '''
@@ -86,9 +92,8 @@ import time
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
-    from azure.core.exceptions import ResourceNotFoundError
+    from azure.core.exceptions import ResourceNotFoundError, HttpResponseError
     from azure.core.polling import LROPoller
-    from msrest.serialization import Model
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -277,6 +282,8 @@ class AzureRMMySqlDatabase(AzureRMModuleBase):
             self.log("MySQL Database instance : {0} found".format(response.name))
         except ResourceNotFoundError as e:
             self.log('Did not find the MySQL Database instance.')
+        except HttpResponseError as e:
+            self.log("Get MySQL Database instance error. code: {0}, message: {1}".format(e.status_code, str(e.error)))
         if found is True:
             return response.as_dict()
 

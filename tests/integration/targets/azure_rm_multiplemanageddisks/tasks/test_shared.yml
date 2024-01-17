@@ -2,15 +2,15 @@
 - name: Create managed disks with missing required parameters
   azure.azcollection.azure_rm_multiplemanageddisks:
     managed_disks:
-      - resource_group: "{{ resource_group }}"
+      - resource_group: "{{ resource_group_secondary }}"
         name: "disk-copy-without-source-uri"
         create_option: copy
         max_shares: 3
-      - resource_group: "{{ resource_group }}"
+      - resource_group: "{{ resource_group_secondary }}"
         name: "disk-import-without-storage-account"
         create_option: import
         max_shares: 3
-      - resource_group: "{{ resource_group }}"
+      - resource_group: "{{ resource_group_secondary }}"
         name: "disk-empty-without-disk-size"
         create_option: empty
         max_shares: 3
@@ -18,13 +18,13 @@
   ignore_errors: true
 
 - name: Validate that disk creation failed
-  assert:
+  ansible.builtin.assert:
     that:
       - result is failed
       - 'result.msg == "Some required options are missing from managed disks configuration."'
-      - '"managed disk {{ resource_group }}/disk-copy-without-source-uri has create_option set to copy but not all required parameters (source_uri) are set." in result.errors'
-      - '"managed disk {{ resource_group }}/disk-import-without-storage-account has create_option set to import but not all required parameters (source_uri,storage_account_id) are set." in result.errors'
-      - '"managed disk {{ resource_group }}/disk-empty-without-disk-size has create_option set to empty but not all required parameters (disk_size_gb) are set." in result.errors'
+      - '"managed disk {{ resource_group_secondary }}/disk-copy-without-source-uri has create_option set to copy but not all required parameters (source_uri) are set." in result.errors'
+      - '"managed disk {{ resource_group_secondary }}/disk-import-without-storage-account has create_option set to import but not all required parameters (source_uri,storage_account_id) are set." in result.errors'
+      - '"managed disk {{ resource_group_secondary }}/disk-empty-without-disk-size has create_option set to empty but not all required parameters (disk_size_gb) are set." in result.errors'
 
 # Test managed disks creation
 - name: Create managed disks
@@ -33,7 +33,7 @@
   register: azure_disks
 
 - name: Ensure result is changed
-  assert:
+  ansible.builtin.assert:
     that:
       - azure_disks is changed
       - azure_disks.state | length == 2
@@ -51,12 +51,12 @@
   register: create_idempotency
 
 - name: Ensure result is not changed
-  assert:
+  ansible.builtin.assert:
     that:
       - create_idempotency is not changed
 
 - name: Validate that disks have been created
-  assert:
+  ansible.builtin.assert:
     that:
       - item.name in disk_names
   with_items: "{{ shared_disks }}"
@@ -66,38 +66,41 @@
 # setup: create virtual machines to attach disks on
 - name: Create virtual network
   azure_rm_virtualnetwork:
-    resource_group: "{{ resource_group }}"
-    name: "{{ shared_virtual_network }}"
+    resource_group: "{{ resource_group_secondary }}"
+    name: "vnet-{{ item.name }}"
     address_prefixes: "{{ shared_virtual_network_cidr }}"
+  with_items: "{{ shared_virtual_machines }}"
 
 - name: Add subnet
   azure_rm_subnet:
-    resource_group: "{{ resource_group }}"
-    name: "{{ shared_subnet }}"
+    resource_group: "{{ resource_group_secondary }}"
+    name: "sub-{{ item.name }}"
     address_prefix: "{{ shared_subnet_cidr }}"
-    virtual_network: "{{ shared_virtual_network }}"
+    virtual_network: "vnet-{{ item.name }}"
+  with_items: "{{ shared_virtual_machines }}"
 
 - name: Create virtual machines
   azure_rm_virtualmachine:
-      resource_group: "{{ item.resource_group }}"
-      name: "{{ item.name }}"
-      vm_size: Standard_E2_v3
-      managed_disk_type: Standard_LRS
-      admin_username: adminuser
-      admin_password: "!test123@"
-      os_type: Linux
-      image:
-        offer: UbuntuServer
-        publisher: Canonical
-        sku: 16.04-LTS
-        version: latest
+    resource_group: "{{ item.resource_group }}"
+    name: "{{ item.name }}"
+    vm_size: Standard_E2_v3
+    virtual_network: "vnet-{{ item.name }}"
+    managed_disk_type: Standard_LRS
+    admin_username: adminuser
+    admin_password: "!test123@"
+    os_type: Linux
+    image:
+      offer: 0001-com-ubuntu-server-focal
+      publisher: Canonical
+      sku: 20_04-lts
+      version: latest
   with_items: "{{ shared_virtual_machines }}"
   register: create_vms
   async: 1000
   poll: 0
 
 - name: Wait for Virtual machine to be created
-  async_status:
+  ansible.builtin.async_status:
     jid: "{{ item.ansible_job_id }}"
   register: wait_create_vm
   until: wait_create_vm.finished
@@ -112,21 +115,24 @@
   register: vm_result
   with_items: "{{ shared_virtual_machines }}"
 
-- set_fact:
+- name: Assert the virtualmachine facts
+  ansible.builtin.set_fact:
     vm_ids: "{{ vm_result.results | map(attribute='vms') | flatten | map(attribute='id') | list }}"
 
 # Test attach disk on VMs
 - name: Attach existing disks to VMs
   azure.azcollection.azure_rm_multiplemanageddisks:
     managed_disks: "{{ shared_disks }}"
-    managed_by_extended: "{{ shared_virtual_machines }}"
+    managed_by_extended:
+      - "{{ item }}"
   register: attach_disks
+  with_items: "{{ shared_virtual_machines }}"
 
 - name: Ensure result is changed
-  assert:
+  ansible.builtin.assert:
     that:
       - attach_disks is changed
-      - attach_disks.state | length == 2
+      - attach_disks.results | length == 2
 
 - name: Retrieve managed disks info
   azure_rm_manageddisk_info:
@@ -136,7 +142,7 @@
   with_items: "{{ shared_disks }}"
 
 - name: Validate disks are attached to the VMs
-  assert:
+  ansible.builtin.assert:
     that:
       - azure_managed_disks | length == 2
       - azure_managed_disks.0.managed_by_extended | length == 2
@@ -155,7 +161,7 @@
   register: attach_idempotency
 
 - name: Ensure result is not changed
-  assert:
+  ansible.builtin.assert:
     that:
       - attach_idempotency is not changed
 
@@ -164,13 +170,13 @@
   azure.azcollection.azure_rm_multiplemanageddisks:
     managed_disks:
       - "{{ shared_disks[0] }}"
-    managed_by_extended: 
+    managed_by_extended:
       - "{{ shared_virtual_machines[0] }}"
     state: absent
   register: detach_disks
 
 - name: Ensure result is changed
-  assert:
+  ansible.builtin.assert:
     that:
       - detach_disks is changed
 
@@ -182,7 +188,7 @@
   with_items: "{{ shared_disks }}"
 
 - name: Ensure disk 1 is attached to VM 1 only and disk 2 is attached to VM 1 and VM 2
-  assert:
+  ansible.builtin.assert:
     that:
       - azure_managed_disks | length == 2
       - azure_managed_disks.0.managed_by_extended | length == 1
@@ -199,20 +205,20 @@
   azure.azcollection.azure_rm_multiplemanageddisks:
     managed_disks:
       - "{{ shared_disks[0] }}"
-    managed_by_extended: 
+    managed_by_extended:
       - "{{ shared_virtual_machines[0] }}"
     state: absent
   register: detach_idempotency
 
 - name: Ensure result is not changed
-  assert:
+  ansible.builtin.assert:
     that:
       - detach_idempotency is not changed
 
 # Test Detach disks from all VMs
 - name: Detach disk 2 from all VMs
   azure.azcollection.azure_rm_multiplemanageddisks:
-    managed_disks: 
+    managed_disks:
       - "{{ shared_disks[1] }}"
     managed_by_extended: []
     state: present
@@ -225,7 +231,7 @@
   register: azure_disks
 
 - name: Ensure disk is not attached to any VM
-  assert:
+  ansible.builtin.assert:
     that:
       - detach_from_vms is changed
       - azure_disks.ansible_info.azure_managed_disk | length == 1
@@ -234,14 +240,14 @@
 
 - name: Detach disk 2 from all VMs once again (idempotency)
   azure.azcollection.azure_rm_multiplemanageddisks:
-    managed_disks: 
+    managed_disks:
       - "{{ shared_disks[1] }}"
     managed_by_extended: []
     state: present
   register: detach_from_vms
 
 - name: Ensure nothing changed
-  assert:
+  ansible.builtin.assert:
     that:
       - detach_from_vms is not changed
 
@@ -253,14 +259,14 @@
   register: azure_disks
 
 - name: Ensure disk is attached to at least one VM
-  assert:
+  ansible.builtin.assert:
     that:
       - azure_disks.ansible_info.azure_managed_disk.0.managed_by
       - azure_disks.ansible_info.azure_managed_disk.0.managed_by_extended | length > 0
 
 - name: Delete managed disk attached to VM
   azure.azcollection.azure_rm_multiplemanageddisks:
-    managed_disks: 
+    managed_disks:
       - "{{ shared_disks[0] }}"
     state: absent
   register: delete_attached_disk
@@ -272,41 +278,41 @@
   register: azure_disks
 
 - name: Ensure disk was deleted
-  assert:
+  ansible.builtin.assert:
     that:
       - delete_attached_disk is changed
       - azure_disks.ansible_info.azure_managed_disk | length == 0
 
 - name: Delete managed disk once again (idempotency)
   azure.azcollection.azure_rm_multiplemanageddisks:
-    managed_disks: 
+    managed_disks:
       - "{{ shared_disks[0] }}"
     state: absent
   register: delete_attached_disk
 
 - name: Ensure delete idempotency
-  assert:
+  ansible.builtin.assert:
     that:
       - delete_attached_disk is not changed
 
 # Test managed disks deletion with managed_by_extended set to []
 - name: Trying to delete managed disks with managed_by_extended set to []
   azure.azcollection.azure_rm_multiplemanageddisks:
-    managed_disks: 
+    managed_disks:
       - "{{ shared_disks[1] }}"
     managed_by_extended: []
     state: absent
   register: delete_with_wrong_parameter
 
 - name: Ensure disks were not deleted
-  assert:
+  ansible.builtin.assert:
     that:
       - delete_with_wrong_parameter is not changed
 
 # Test managed disks deletion
 - name: Delete managed disks
   azure.azcollection.azure_rm_multiplemanageddisks:
-    managed_disks: 
+    managed_disks:
       - "{{ shared_disks[1] }}"
     state: absent
   register: delete_disk
@@ -318,19 +324,19 @@
   register: azure_disks
 
 - name: Ensure disk was deleted
-  assert:
+  ansible.builtin.assert:
     that:
       - delete_disk is changed
       - azure_disks.ansible_info.azure_managed_disk | length == 0
 
 - name: Delete managed disks once again (idempotency)
   azure.azcollection.azure_rm_multiplemanageddisks:
-    managed_disks: 
+    managed_disks:
       - "{{ shared_disks[1] }}"
     state: absent
   register: delete_idempotency
 
 - name: Ensure nothing changed
-  assert:
+  ansible.builtin.assert:
     that:
       - delete_idempotency is not changed

@@ -24,9 +24,11 @@ options:
     name:
         description:
             - Only show results for a specific virtual network.
+        type: str
     resource_group:
         description:
             - Limit results by resource group. Required when filtering by name.
+        type: str
     tags:
         description:
             - Limit results by providing a list of tags. Format tags as 'key' or 'key:value'.
@@ -43,19 +45,19 @@ author:
 '''
 
 EXAMPLES = '''
-    - name: Get facts for one virtual network
-      azure_rm_virtualnetwork_info:
-        resource_group: myResourceGroup
-        name: secgroup001
+- name: Get facts for one virtual network
+  azure_rm_virtualnetwork_info:
+    resource_group: myResourceGroup
+    name: secgroup001
 
-    - name: Get facts for all virtual networks
-      azure_rm_virtualnetwork_info:
-        resource_group: myResourceGroup
+- name: Get facts for all virtual networks
+  azure_rm_virtualnetwork_info:
+    resource_group: myResourceGroup
 
-    - name: Get facts by tags
-      azure_rm_virtualnetwork_info:
-        tags:
-          - testing
+- name: Get facts by tags
+  azure_rm_virtualnetwork_info:
+    tags:
+      - testing
 '''
 RETURN = '''
 azure_virtualnetworks:
@@ -226,6 +228,8 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
             virtualnetworks=[]
         )
 
+        self.required_if = [('name', '*', ['resource_group'])]
+
         self.name = None
         self.resource_group = None
         self.tags = None
@@ -233,7 +237,8 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
         super(AzureRMNetworkInterfaceInfo, self).__init__(self.module_arg_spec,
                                                           supports_check_mode=True,
                                                           supports_tags=False,
-                                                          facts_module=True)
+                                                          facts_module=True,
+                                                          required_if=self.required_if)
 
     def exec_module(self, **kwargs):
         is_old_facts = self.module._name == 'azure_rm_virtualnetwork_facts'
@@ -264,7 +269,7 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
         results = []
 
         try:
-            item = self.network_client.virtual_networks.get(resource_group_name=self.resource_group, 
+            item = self.network_client.virtual_networks.get(resource_group_name=self.resource_group,
                                                             virtual_network_name=self.name)
         except ResourceNotFoundError:
             pass

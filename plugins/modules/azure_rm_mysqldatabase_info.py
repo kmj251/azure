@@ -41,16 +41,16 @@ author:
 '''
 
 EXAMPLES = '''
-  - name: Get instance of MySQL Database
-    azure_rm_mysqldatabase_info:
-      resource_group: myResourceGroup
-      server_name: server_name
-      name: database_name
+- name: Get instance of MySQL Database
+  azure_rm_mysqldatabase_info:
+    resource_group: myResourceGroup
+    server_name: server_name
+    name: database_name
 
-  - name: List instances of MySQL Database
-    azure_rm_mysqldatabase_info:
-      resource_group: myResourceGroup
-      server_name: server_name
+- name: List instances of MySQL Database
+  azure_rm_mysqldatabase_info:
+    resource_group: myResourceGroup
+    server_name: server_name
 '''
 
 RETURN = '''
@@ -101,9 +101,7 @@ databases:
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
-    from azure.core.exceptions import ResourceNotFoundError
-    from azure.core.polling import LROPoller
-    from msrest.serialization import Model
+    from azure.core.exceptions import ResourceNotFoundError, HttpResponseError
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -161,6 +159,8 @@ class AzureRMMySqlDatabaseInfo(AzureRMModuleBase):
             self.log("Response : {0}".format(response))
         except ResourceNotFoundError as e:
             self.log('Could not get facts for Databases.')
+        except HttpResponseError as e:
+            self.log("Get MySQL Database instance error. code: {0}, message: {1}".format(e.status_code, str(e.error)))
 
         if response is not None:
             results.append(self.format_item(response))

@@ -89,7 +89,7 @@ options:
     administrator_login:
         description:
             - Administrator username for the managed instance.
-            -  Can only be specified when the managed instance is being created (and is required for creation).
+            - Can only be specified when the managed instance is being created (and is required for creation).
         type: str
     administrator_login_password:
         description:
@@ -513,7 +513,6 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
-    from azure.core.polling import LROPoller
 except ImportError:
     pass
 
